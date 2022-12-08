@@ -1,17 +1,31 @@
 import sqlite3
 
+import pwinput
+from rich import print as rprint
+from rich.console import Console
+from rich.prompt import Prompt
+from rich.tree import Tree
 
-class PMUser:
-    def __init__(self, username, password, db):
+console = Console()
+
+
+class UserManager:
+    def __init__(self, username, password, db, persist=True):
         self.username = username
         self.password = password
         self.db = db
         self.db_cursor = self.db.get_cursor()
-        self.persist()
+        if persist:
+            self.persist()
 
     def persist(self):
         self.db_cursor.execute("INSERT INTO users VALUES (?, ?)", (self.username, self.password), )
         self.db.commit()
+
+    def check_pass(self):
+        real_pass = \
+            self.db_cursor.execute("SELECT password FROM users WHERE username = ?", (self.username,), ).fetchall()[0][0]
+        return real_pass == self.password
 
 
 class PasswordManager:
@@ -43,13 +57,6 @@ class PasswordManager:
                                (self.user, source, username, password), )
         self.db.commit()
 
-    # def update_password(self, source, password):
-    #     user_pass = self.sources.get(source, None)
-    #     if not user_pass:
-    #         raise Exception("Source does not exist")
-    #     password_object = user_pass[1].set_password(password)
-    #     self.sources[source] = (user_pass[0], password_object)
-
 
 class Password:
     def __init__(self):
@@ -61,21 +68,98 @@ class Password:
     def set_password(self, password):
         self._passwords.append(password)
 
-
-class ConsoleInterface:
     @staticmethod
-    def get_input(is_int=False):
-        raw_inp = input()
-        if is_int:
-            inp = int(raw_inp)
-        else:
-            inp = str(raw_inp)  # sanitize input
-        return inp
+    def is_strong_password(password):
+        return True
+
+
+class ConsoleApp:
+    def __init__(self):
+        self.db = DBManager('password_manager')
+        self.pm = None
+        self.user = None
 
     def run(self):
-        print("Welcome to the Super Strong Password Manager!\nWhat can I do for you?")
-        print("  1. Login\n  2. Create Account")
-        choice = self.get_input(is_int=True)
+        self.welcome()
+        choice = self.get_initial_choice()
+        if choice == "1":
+            self.user = self.login()
+        if choice == "2":
+            self.user = self.create_user()
+        self.pm = PasswordManager(self.user, self.db)
+
+    @staticmethod
+    def welcome():
+        style1 = "blink bold blue on white"
+        console.rule()
+        console.print(" Welcome to the Super Strong Password Manager!", style=style1, justify="center")
+        console.rule()
+
+    @staticmethod
+    def get_initial_choice():
+        tree = Tree("What can I do for you?")
+        tree.add("1. Login")
+        tree.add("2. Create Account")
+        rprint(tree)
+        choice = Prompt.ask(
+            "Choose from",
+            choices=["1", "2"],
+        )
+        return choice
+
+    def create_user(self):
+        username = self._new_username_prompt()
+        password = self._new_password_prompt()
+        UserManager(username, password, self.db)
+        return username
+
+    def login(self):
+        username = None
+        all_users = get_all_users(self.db.get_cursor())
+        is_acceptable = False
+        while not is_acceptable:
+            username = Prompt.ask(
+                "Please enter your username",
+            )
+            if username not in all_users:
+                console.print("Account with this username does not exist!", style="bold red")
+            else:
+                is_acceptable = True
+        is_acceptable = False
+        while not is_acceptable:
+            password = pwinput.pwinput()
+            user = UserManager(username, password, self.db, persist=False)
+            if user.check_pass():
+                is_acceptable = True
+            else:
+                console.print("Password is wrong!", style="bold red")
+        return username
+
+    def _new_username_prompt(self):
+        username = None
+        all_users = get_all_users(self.db.get_cursor())
+        is_acceptable = False
+        while not is_acceptable:
+            username = Prompt.ask(
+                "Please enter your username",
+            )
+            if username in all_users:
+                console.print("Username already exists!", style="bold red")
+            else:
+                is_acceptable = True
+        return username
+
+    @staticmethod
+    def _new_password_prompt():
+        is_acceptable = False
+        password = None
+        while not is_acceptable:
+            password = pwinput.pwinput()
+            if Password.is_strong_password(password):
+                is_acceptable = True
+            else:
+                console.print("Password is too weak!", style="bold red")
+        return password
 
 
 class DBManager:
@@ -97,12 +181,13 @@ def get_all_users(db_cursor):
 
 
 if __name__ == '__main__':
-    console_interface = ConsoleInterface()
-    db = DBManager('password_manager')
-    cursor = db.get_cursor()
+    console_interface = ConsoleApp()
+    console_interface.run()
+    d = DBManager('password_manager')
+    cursor = d.get_cursor()
     user = 'John'
-    pm = PasswordManager(user, db)
-    pm.set_new_user_pass('google', 'gagool', '12345')
-    print(get_all_users(cursor))
-    print(pm.get_all_available_sources())
-    print(pm.get_user_pass('google'))
+    pm = PasswordManager(user, d)
+    # pm.set_new_user_pass('google', 'gagool', '12345')
+    # print(get_all_users(cursor))
+    # print(pm.get_all_available_sources())
+    # print(pm.get_user_pass('google'))
