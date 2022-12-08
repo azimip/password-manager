@@ -27,6 +27,15 @@ class UserManager:
             self.db_cursor.execute("SELECT password FROM users WHERE username = ?", (self.username,), ).fetchall()[0][0]
         return real_pass == self.password
 
+    def set_new_password(self, old_password, new_password):
+        current_pass = \
+            self.db_cursor.execute("SELECT password FROM users WHERE username = ?", (self.username,), ).fetchall()[0][0]
+        if current_pass != old_password:
+            raise Exception("Old password is wrong")
+        self.db_cursor.execute("UPDATE users SET password = ? WHERE username = ?",
+                               (new_password, self.username), )
+        self.db.commit()
+
 
 class PasswordManager:
     def __init__(self, user, db):
@@ -194,11 +203,11 @@ class ConsoleApp:
         return username
 
     @staticmethod
-    def _new_password_prompt():
+    def _new_password_prompt(prompt="Password: "):
         is_acceptable = False
         password = None
         while not is_acceptable:
-            password = pwinput.pwinput()
+            password = pwinput.pwinput(prompt=prompt)
             if Password.is_strong_password(password):
                 is_acceptable = True
             else:
@@ -248,6 +257,21 @@ class ConsoleApp:
         password = self._new_password_prompt()
         self.pm.update_previous_password(source, username, password)
         console.print(f'Username and password for source {source} updated successfully!', style="blue")
+
+    def change_master_password(self):
+        is_acceptable = False
+        user_manager = None
+        old_password = None
+        while not is_acceptable:
+            old_password = pwinput.pwinput(prompt="Enter your current password: ")
+            user_manager = UserManager(self.user, old_password, self.db, persist=False)
+            if user_manager.check_pass():
+                is_acceptable = True
+            else:
+                console.print("Password is wrong!", style="bold red")
+        new_password = self._new_password_prompt("Enter your new Master Password: ")
+        user_manager.set_new_password(old_password, new_password)
+        console.print(f'Master password updated successfully!', style="blue")
 
 
 class DBManager:
