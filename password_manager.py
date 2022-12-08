@@ -2,42 +2,53 @@ import sqlite3
 
 
 class PMUser:
-    def __init__(self, username, password, db_cursor):
+    def __init__(self, username, password, db):
         self.username = username
         self.password = password
-        self.db_cursor = db_cursor
+        self.db = db
+        self.db_cursor = self.db.get_cursor()
         self.persist()
 
     def persist(self):
         self.db_cursor.execute("INSERT INTO users VALUES (?, ?)", (self.username, self.password), )
+        self.db.commit()
 
 
 class PasswordManager:
-    def __init__(self, user: PMUser):
+    def __init__(self, user, db):
         self.user = user
-        self.sources = {}
+        self.db = db
+        self.db_cursor = self.db.get_cursor()
+
+    def get_all_available_sources(self):
+        sources = [row[0] for row in self.db_cursor.execute("SELECT source FROM passwords WHERE user = ?",
+                                                            (self.user,), ).fetchall()]
+        return sources
 
     def get_user_pass(self, source):
-        user_pass = self.sources.get(source, None)
+        user_pass = [(row[0], row[1]) for row in
+                     self.db_cursor.execute("SELECT username, password FROM passwords WHERE user = ? and source = ?",
+                                            (self.user, source), ).fetchall()]
         if not user_pass:
             raise Exception("Source does not exist")
-        user = user_pass[0]
-        password = user_pass[1].get_latest_password()
-        return user, password
+        username = user_pass[0][0]
+        password = user_pass[0][1]
+        return username, password
 
     def set_new_user_pass(self, source, username, password):
-        if self.sources.get(source):
+        sources = self.get_all_available_sources()
+        if source in sources:
             raise Exception("Source already exists")
-        password_object = Password()
-        password_object.set_password(password)
-        self.sources[source] = (username, password_object)
+        self.db_cursor.execute("INSERT INTO passwords VALUES (?, ?, ?, ?)",
+                               (self.user, source, username, password), )
+        self.db.commit()
 
-    def update_password(self, source, password):
-        user_pass = self.sources.get(source, None)
-        if not user_pass:
-            raise Exception("Source does not exist")
-        password_object = user_pass[1].set_password(password)
-        self.sources[source] = (user_pass[0], password_object)
+    # def update_password(self, source, password):
+    #     user_pass = self.sources.get(source, None)
+    #     if not user_pass:
+    #         raise Exception("Source does not exist")
+    #     password_object = user_pass[1].set_password(password)
+    #     self.sources[source] = (user_pass[0], password_object)
 
 
 class Password:
@@ -80,9 +91,18 @@ class DBManager:
         self.connection.commit()
 
 
+def get_all_users(db_cursor):
+    users = [row[0] for row in db_cursor.execute("SELECT username FROM users").fetchall()]
+    return users
+
+
 if __name__ == '__main__':
     console_interface = ConsoleInterface()
     db = DBManager('password_manager')
-    curser = db.get_cursor()
-    user = PMUser('John', '123', curser)
-    db.commit()
+    cursor = db.get_cursor()
+    user = 'John'
+    pm = PasswordManager(user, db)
+    pm.set_new_user_pass('google', 'gagool', '12345')
+    print(get_all_users(cursor))
+    print(pm.get_all_available_sources())
+    print(pm.get_user_pass('google'))
