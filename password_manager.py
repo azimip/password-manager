@@ -1,14 +1,15 @@
-from random import randint
+import sqlite3
 
 
 class PMUser:
-    def __init__(self, username):
-        self.password = None
-        self.id = randint(0, 100000000)  # change to uuid
+    def __init__(self, username, password, db_curser):
         self.username = username
-
-    def set_password(self, password):
         self.password = password
+        self.db_curser = db_curser
+        self.persist()
+
+    def persist(self):
+        self.db_curser.execute("INSERT INTO users VALUES (?, ?, ?)", (self.username, self.password),)
 
 
 class PasswordManager:
@@ -65,7 +66,19 @@ class ConsoleInterface:
         print("  1. Login\n  2. Create Account")
         choice = self.get_input(is_int=True)
 
+
+class DBManager:
+    def __init__(self, name):
+        self.name = name
+        self.db_name = f'{name}.db'
+        self.connection = sqlite3.connect(self.db_name)
+
+    def get_cursor(self):
+        return self.connection.cursor()
+
+
 if __name__ == '__main__':
     console_interface = ConsoleInterface()
-    console_interface.run()
-
+    db = DBManager('password_manager')
+    curser = db.get_cursor()
+    user = PMUser('John', '123', curser)
