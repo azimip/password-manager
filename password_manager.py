@@ -95,8 +95,10 @@ class ConsoleApp:
             if choice == "2":
                 self.add_new_password()
             if choice == "3":
-                self.change_master_password()
+                self.change_password_of_source()
             if choice == "4":
+                self.change_master_password()
+            if choice == "5":
                 self.goodbye()
                 goodbye = True
 
@@ -128,15 +130,16 @@ class ConsoleApp:
 
     @staticmethod
     def get_main_action():
-        tree = Tree("What is your next step?")
+        tree = Tree("\nWhat is your next step?")
         tree.add("1. Get a list of previously set passwords")
         tree.add("2. Add a new password")
-        tree.add("3. Change my Master Password")
-        tree.add("4. Exit")
+        tree.add("3. Change password of a source")
+        tree.add("4. Change my Master Password")
+        tree.add("5. Exit")
         rprint(tree)
         choice = Prompt.ask(
             "Choose from",
-            choices=["1", "2", "3", "4"],
+            choices=["1", "2", "3", "4", "5"],
         )
         return choice
 
@@ -201,8 +204,25 @@ class ConsoleApp:
             choices=all_sources,
         )
         username, password = self.pm.get_user_pass(source)
-        console.print(f'\nYour username for {source} is: {username}')
-        console.print(f'Your password for {source} is: {password}\n')
+        console.print(f'Your username for {source} is:', style="blue")
+        console.print(username)
+        console.print(f'Your password for {source} is:', style="blue")
+        console.print(password)
+
+    def add_new_password(self):
+        all_sources = self.pm.get_all_available_sources()
+        is_acceptable = False
+        source = None
+        while not is_acceptable:
+            source = Prompt.ask("Enter the source name")
+            if source in all_sources:
+                console.print("Source already exists!", style="bold red")
+            else:
+                is_acceptable = True
+        username = Prompt.ask("Username")
+        password = self._new_password_prompt()
+        self.pm.set_new_user_pass(source, username, password)
+        console.print(f'New username and password set!', style="blue")
 
 
 class DBManager:
