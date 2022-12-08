@@ -2,14 +2,14 @@ import sqlite3
 
 
 class PMUser:
-    def __init__(self, username, password, db_curser):
+    def __init__(self, username, password, db_cursor):
         self.username = username
         self.password = password
-        self.db_curser = db_curser
+        self.db_cursor = db_cursor
         self.persist()
 
     def persist(self):
-        self.db_curser.execute("INSERT INTO users VALUES (?, ?, ?)", (self.username, self.password),)
+        self.db_cursor.execute("INSERT INTO users VALUES (?, ?)", (self.username, self.password), )
 
 
 class PasswordManager:
@@ -76,9 +76,13 @@ class DBManager:
     def get_cursor(self):
         return self.connection.cursor()
 
+    def commit(self):
+        self.connection.commit()
+
 
 if __name__ == '__main__':
     console_interface = ConsoleInterface()
     db = DBManager('password_manager')
     curser = db.get_cursor()
     user = PMUser('John', '123', curser)
+    db.commit()
