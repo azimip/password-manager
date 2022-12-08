@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from itertools import permutations
+import re
 from typing import List
 
 from utils import const
@@ -34,9 +36,19 @@ class PowersetVisitor(SimilarityVisitor):
 
 class PermutationVisitor(SimilarityVisitor):
     def is_similar(self) -> bool:
-        # password_hash = get_hash(plain_text=self.new_password)
-        # return password_hash in self.old_passowrd_hashes
-        return True
+        numbers = re.findall(r'\d+', self.new_password)
+        lowercase_strings = re.findall(r'[a-z]+', self.new_password)
+        uppercase_strings = re.findall(r'[A-Z]+', self.new_password)
+        other_patterns = re.findall(r'[^0-9a-zA-Z]+', self.new_password)
+        password_parts = numbers + lowercase_strings + uppercase_strings + other_patterns
+
+        similar_passwords = list(
+            "".join(perm)
+            for perm in list(permutations(password_parts))
+        )
+        password_hashes = [get_hash(password) for password in similar_passwords]
+
+        return True if set(password_hashes).intersection(self.old_passowrd_hashes) else False
 
 class AddOnVisitor(SimilarityVisitor):
     def is_similar(self) -> bool:
@@ -54,7 +66,7 @@ class AddOnVisitor(SimilarityVisitor):
 SIMIARITY_VISITORS = [
     ReversedVisitor,
     PowersetVisitor,
-    # PermutationVisitor,
+    PermutationVisitor,
     AddOnVisitor,
 ]
 
