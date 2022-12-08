@@ -87,13 +87,32 @@ class ConsoleApp:
         if choice == "2":
             self.user = self.create_user()
         self.pm = PasswordManager(self.user, self.db)
+        goodbye = False
+        while not goodbye:
+            choice = self.get_main_action()
+            if choice == "1":
+                self.get_previous_passwords()
+            if choice == "2":
+                self.add_new_password()
+            if choice == "3":
+                self.change_master_password()
+            if choice == "4":
+                self.goodbye()
+                goodbye = True
 
     @staticmethod
     def welcome():
-        style1 = "blink bold blue on white"
-        console.rule()
-        console.print(" Welcome to the Super Strong Password Manager!", style=style1, justify="center")
-        console.rule()
+        style1 = "blink bold blue"
+        console.rule(style="blue")
+        console.print("Welcome to the Super Strong Password Manager!", style=style1, justify="center")
+        console.rule(style="blue")
+
+    @staticmethod
+    def goodbye():
+        style1 = "bold blue"
+        console.rule(style="blue")
+        console.print("Have a safe day!", style=style1, justify="center")
+        console.rule(style="blue")
 
     @staticmethod
     def get_initial_choice():
@@ -104,6 +123,20 @@ class ConsoleApp:
         choice = Prompt.ask(
             "Choose from",
             choices=["1", "2"],
+        )
+        return choice
+
+    @staticmethod
+    def get_main_action():
+        tree = Tree("What is your next step?")
+        tree.add("1. Get a list of previously set passwords")
+        tree.add("2. Add a new password")
+        tree.add("3. Change my Master Password")
+        tree.add("4. Exit")
+        rprint(tree)
+        choice = Prompt.ask(
+            "Choose from",
+            choices=["1", "2", "3", "4"],
         )
         return choice
 
@@ -160,6 +193,16 @@ class ConsoleApp:
             else:
                 console.print("Password is too weak!", style="bold red")
         return password
+
+    def get_previous_passwords(self):
+        all_sources = self.pm.get_all_available_sources()
+        source = Prompt.ask(
+            "Available sources",
+            choices=all_sources,
+        )
+        username, password = self.pm.get_user_pass(source)
+        console.print(f'\nYour username for {source} is: {username}')
+        console.print(f'Your password for {source} is: {password}\n')
 
 
 class DBManager:
