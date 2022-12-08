@@ -199,6 +199,9 @@ class ConsoleApp:
 
     def get_previous_passwords(self):
         all_sources = self.pm.get_all_available_sources()
+        if not all_sources:
+            console.print("There is no previously set password!", style="bold red")
+            return
         source = Prompt.ask(
             "Available sources",
             choices=all_sources,
@@ -244,13 +247,5 @@ def get_all_users(db_cursor):
 
 
 if __name__ == '__main__':
-    console_interface = ConsoleApp()
-    console_interface.run()
-    d = DBManager('password_manager')
-    cursor = d.get_cursor()
-    user = 'John'
-    pm = PasswordManager(user, d)
-    # pm.set_new_user_pass('google', 'gagool', '12345')
-    # print(get_all_users(cursor))
-    # print(pm.get_all_available_sources())
-    # print(pm.get_user_pass('google'))
+    console_app = ConsoleApp()
+    console_app.run()
