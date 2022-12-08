@@ -50,5 +50,22 @@ class Password:
         self._passwords.append(password)
 
 
+class ConsoleInterface:
+    @staticmethod
+    def get_input(is_int=False):
+        raw_inp = input()
+        if is_int:
+            inp = int(raw_inp)
+        else:
+            inp = str(raw_inp)  # sanitize input
+        return inp
+
+    def run(self):
+        print("Welcome to the Super Strong Password Manager!\nWhat can I do for you?")
+        print("  1. Login\n  2. Create Account")
+        choice = self.get_input(is_int=True)
+
 if __name__ == '__main__':
-    pass
+    console_interface = ConsoleInterface()
+    console_interface.run()
+
