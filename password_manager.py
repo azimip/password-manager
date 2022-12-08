@@ -57,6 +57,14 @@ class PasswordManager:
                                (self.user, source, username, password), )
         self.db.commit()
 
+    def update_previous_password(self, source, username, password):
+        sources = self.get_all_available_sources()
+        if source not in sources:
+            raise Exception("Source is not available")
+        self.db_cursor.execute("UPDATE passwords SET password = ?, username = ? WHERE user = ? and source = ?",
+                               (password, username, self.user, source), )
+        self.db.commit()
+
 
 class Password:
     def __init__(self):
@@ -226,6 +234,20 @@ class ConsoleApp:
         password = self._new_password_prompt()
         self.pm.set_new_user_pass(source, username, password)
         console.print(f'New username and password set!', style="blue")
+
+    def change_password_of_source(self):
+        all_sources = self.pm.get_all_available_sources()
+        if not all_sources:
+            console.print("There is no previously set password!", style="bold red")
+            return
+        source = Prompt.ask(
+            "Choose a source",
+            choices=all_sources,
+        )
+        username = Prompt.ask("New username")
+        password = self._new_password_prompt()
+        self.pm.update_previous_password(source, username, password)
+        console.print(f'Username and password for source {source} updated successfully!', style="blue")
 
 
 class DBManager:
