@@ -24,3 +24,8 @@ class TestSimilarityChecker(unittest.TestCase):
         password = "crypto-CRYPTO_123@"
         hash_val = get_hash("crypto_CRYPTO@123-")
         self.assertEqual(is_similar(new_password=password, old_passowrd_hashes=[hash_val]), True)
+
+    def test_different_case(self):
+        password = "crypto-123"
+        hash_val = get_hash("CryPtO-123")
+        self.assertEqual(is_similar(new_password=password, old_passowrd_hashes=[hash_val]), True)
