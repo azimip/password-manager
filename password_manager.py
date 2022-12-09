@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.prompt import Prompt
 from rich.tree import Tree
 
+from utils.aes import encrypt, decrypt
 from utils.hash import get_hash
 
 console = Console()
@@ -43,56 +44,43 @@ class UserManager:
 
 
 class PasswordManager:
-    def __init__(self, user, db):
-        self.user = user
+    def __init__(self, um, db):
+        self.um = um
         self.db = db
         self.db_cursor = self.db.get_cursor()
 
     def get_all_available_sources(self):
         sources = [row[0] for row in self.db_cursor.execute("SELECT source FROM passwords WHERE user = ?",
-                                                            (self.user,), ).fetchall()]
+                                                            (self.um.username,), ).fetchall()]
         return sources
 
     def get_user_pass(self, source):
         user_pass = [(row[0], row[1]) for row in
                      self.db_cursor.execute("SELECT username, password FROM passwords WHERE user = ? and source = ?",
-                                            (self.user, source), ).fetchall()]
+                                            (self.um.username, source), ).fetchall()]
         if not user_pass:
             raise Exception("Source does not exist")
         username = user_pass[0][0]
-        password = user_pass[0][1]
+        password = decrypt(self.um.password, user_pass[0][1])
         return username, password
 
     def set_new_user_pass(self, source, username, password):
         sources = self.get_all_available_sources()
         if source in sources:
             raise Exception("Source already exists")
+        encrypted_password = encrypt(self.um.password, password)
         self.db_cursor.execute("INSERT INTO passwords VALUES (?, ?, ?, ?)",
-                               (self.user, source, username, password), )
+                               (self.um.username, source, username, encrypted_password), )
         self.db.commit()
 
     def update_previous_password(self, source, username, password):
         sources = self.get_all_available_sources()
         if source not in sources:
             raise Exception("Source is not available")
+        encrypted_password = encrypt(self.um.password, password)
         self.db_cursor.execute("UPDATE passwords SET password = ?, username = ? WHERE user = ? and source = ?",
-                               (password, username, self.user, source), )
+                               (encrypted_password, username, self.um.username, source), )
         self.db.commit()
-
-
-class Password:
-    def __init__(self):
-        self._passwords = []
-
-    def get_latest_password(self):
-        return self._passwords[0]
-
-    def set_password(self, password):
-        self._passwords.append(password)
-
-    @staticmethod
-    def is_strong_password(password):
-        return True
 
 
 class ConsoleApp:
@@ -100,6 +88,7 @@ class ConsoleApp:
         self.db = DBManager('password_manager')
         self.pm = None
         self.user = None
+        self.um = None
 
     def run(self):
         self.welcome()
@@ -108,7 +97,7 @@ class ConsoleApp:
             self.user = self.login()
         if choice == "2":
             self.user = self.create_user()
-        self.pm = PasswordManager(self.user, self.db)
+        self.pm = PasswordManager(self.um, self.db)
         goodbye = False
         while not goodbye:
             choice = self.get_main_action()
@@ -168,11 +157,13 @@ class ConsoleApp:
     def create_user(self):
         username = self._new_username_prompt()
         password = self._new_password_prompt()
-        UserManager(username, password, self.db)
+        um = UserManager(username, password, self.db)
+        self.um = um
         return username
 
     def login(self):
         username = None
+        um = None
         all_users = get_all_users(self.db.get_cursor())
         is_acceptable = False
         while not is_acceptable:
@@ -186,11 +177,12 @@ class ConsoleApp:
         is_acceptable = False
         while not is_acceptable:
             password = pwinput.pwinput()
-            user = UserManager(username, password, self.db, persist=False)
-            if user.check_pass():
+            um = UserManager(username, password, self.db, persist=False)
+            if um.check_pass():
                 is_acceptable = True
             else:
                 console.print("Password is wrong!", style="bold red")
+        self.um = um
         return username
 
     def _new_username_prompt(self):
@@ -213,7 +205,7 @@ class ConsoleApp:
         password = None
         while not is_acceptable:
             password = pwinput.pwinput(prompt=prompt)
-            if Password.is_strong_password(password):
+            if len(password) < 1:
                 is_acceptable = True
             else:
                 console.print("Password is too weak!", style="bold red")
