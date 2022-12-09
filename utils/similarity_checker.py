@@ -16,10 +16,12 @@ class SimilarityVisitor(ABC):
     def is_similar(self) -> bool:
         pass
 
+
 class ReversedVisitor(SimilarityVisitor):
     def is_similar(self) -> bool:
         password_hash = get_hash(plain_text=self.new_password[::-1])
         return password_hash in self.old_passowrd_hashes
+
 
 class PowersetVisitor(SimilarityVisitor):
     def is_similar(self) -> bool:
@@ -33,6 +35,7 @@ class PowersetVisitor(SimilarityVisitor):
             result += [ch2 + ch1 for ch2 in result]
 
         return result
+
 
 class PermutationVisitor(SimilarityVisitor):
     def is_similar(self) -> bool:
@@ -49,6 +52,7 @@ class PermutationVisitor(SimilarityVisitor):
         password_hashes = [get_hash(password) for password in similar_passwords]
 
         return True if set(password_hashes).intersection(self.old_passowrd_hashes) else False
+
 
 class AddOnVisitor(SimilarityVisitor):
     def is_similar(self) -> bool:

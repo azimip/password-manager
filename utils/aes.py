@@ -31,6 +31,7 @@ def decrypt(key, ciphertext):
 	decryptor = AES.new(key, AES.MODE_CBC, IV)
 	data = decryptor.decrypt(ciphertext[AES.block_size:])
 	pad = data[-1]
+
 	if data[-pad:] != bytes([pad]) * pad:
 		raise ValueError("Invalid pad...")
 	return data[:-pad].decode()
