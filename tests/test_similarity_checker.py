@@ -15,9 +15,14 @@ class TestSimilarityChecker(unittest.TestCase):
         hash_val = get_hash("crpto12")
         self.assertEqual(is_similar(new_password=password, old_passowrd_hashes=[hash_val]), True)
 
-    def test_add_on(self):
+    def test_add_on1(self):
         password = "crypto123"
-        hash_val = get_hash("crypto@123")
+        hash_val = get_hash("crypto123@")
+        self.assertEqual(is_similar(new_password=password, old_passowrd_hashes=[hash_val]), True)
+
+    def test_add_on2(self):
+        password = "crypto123"
+        hash_val = get_hash("cr-ypto123")
         self.assertEqual(is_similar(new_password=password, old_passowrd_hashes=[hash_val]), True)
 
     def test_permutation(self):
@@ -28,4 +33,9 @@ class TestSimilarityChecker(unittest.TestCase):
     def test_different_case(self):
         password = "crypto-123"
         hash_val = get_hash("CryPtO-123")
+        self.assertEqual(is_similar(new_password=password, old_passowrd_hashes=[hash_val]), True)
+
+    def test_leet(self):
+        password = "cryptoc"
+        hash_val = get_hash("(rypto(")
         self.assertEqual(is_similar(new_password=password, old_passowrd_hashes=[hash_val]), True)

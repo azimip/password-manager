@@ -65,7 +65,7 @@ class AddOnVisitor(SimilarityVisitor):
 
     @staticmethod
     def insert_string_to_all_positions(target_str:str, add_on: str) -> List[str]:
-        return [target_str[:i] + add_on + target_str[i:] for i in range(len(target_str))]
+        return [target_str[:i] + add_on + target_str[i:] for i in range(len(target_str) + 1)]
 
 
 class DifferentCaseVisitor(SimilarityVisitor):
@@ -74,12 +74,19 @@ class DifferentCaseVisitor(SimilarityVisitor):
 
         return True if set(password_hashes).intersection(self.old_passowrd_hashes) else False
 
+
+class LeetVisitor(SimilarityVisitor):
+    def is_similar(self) -> bool:
+        password_hashes = [get_hash(self.new_password.replace(char, leet_char)) for char in self.new_password for leet_char in const.LEET.get(char)]
+        return True if set(password_hashes).intersection(self.old_passowrd_hashes) else False
+
 SIMIARITY_VISITORS = [
     ReversedVisitor,
     PowersetVisitor,
     PermutationVisitor,
     AddOnVisitor,
     DifferentCaseVisitor,
+    LeetVisitor,
 ]
 
 def is_similar(new_password: str, old_passowrd_hashes: List[str]) -> bool:
