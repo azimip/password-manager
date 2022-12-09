@@ -28,10 +28,10 @@ class UserManager:
         self.db_cursor.execute("INSERT INTO users VALUES (?, ?, ?)", (self.username, password_hash, json.dumps([])), )
         self.db.commit()
 
-    def check_pass(self):
+    def check_pass(self, password):
         real_pass_hash = \
             self.db_cursor.execute("SELECT password FROM users WHERE username = ?", (self.username,), ).fetchall()[0][0]
-        return real_pass_hash == get_hash(self.password)
+        return real_pass_hash == get_hash(password)
 
     def set_new_password(self, current_password, new_password):
         row = self.db_cursor.execute("SELECT password, old_passwords FROM users WHERE username = ?",
@@ -90,6 +90,16 @@ class PasswordManager:
                                (encrypted_password, username, self.um.username, source), )
         self.db.commit()
 
+    def update_password_encryptions(self, old_master_password, new_master_passwsord):
+        sources = self.get_all_available_sources()
+        for source in sources:
+            password = self.db_cursor.execute("SELECT password FROM passwords WHERE user = ? and source = ?",
+                                              (self.um.username, source), ).fetchall()[0][0]
+            new_password = encrypt(new_master_passwsord, decrypt(old_master_password, password))
+            self.db_cursor.execute("UPDATE passwords SET password = ? WHERE user = ? and source = ?",
+                                   (new_password, self.um.username, source), )
+            self.db.commit()
+
 
 class ConsoleApp:
     def __init__(self):
@@ -123,17 +133,17 @@ class ConsoleApp:
 
     @staticmethod
     def welcome():
-        style1 = "blink bold blue"
-        console.rule(style="blue")
+        style1 = "blink bold yellow"
+        console.rule(style="yellow")
         console.print("Welcome to the Super Strong Password Manager!", style=style1, justify="center")
-        console.rule(style="blue")
+        console.rule(style="yellow")
 
     @staticmethod
     def goodbye():
-        style1 = "bold blue"
-        console.rule(style="blue")
+        style1 = "bold yellow"
+        console.rule(style="yellow")
         console.print("Have a safe day!", style=style1, justify="center")
-        console.rule(style="blue")
+        console.rule(style="yellow")
 
     @staticmethod
     def get_initial_choice():
@@ -186,7 +196,7 @@ class ConsoleApp:
         while not is_acceptable:
             password = pwinput.pwinput()
             um = UserManager(username, password, self.db, persist=False)
-            if um.check_pass():
+            if um.check_pass(password):
                 is_acceptable = True
             else:
                 console.print("Password is wrong!", style="bold red")
@@ -229,9 +239,9 @@ class ConsoleApp:
             choices=all_sources,
         )
         username, password = self.pm.get_user_pass(source)
-        console.print(f'Your username for {source} is:', style="blue")
+        console.print(f'Your username for {source} is:', style="yellow")
         console.print(username)
-        console.print(f'Your password for {source} is:', style="blue")
+        console.print(f'Your password for {source} is:', style="yellow")
         console.print(password)
 
     def add_new_password(self):
@@ -247,7 +257,7 @@ class ConsoleApp:
         username = Prompt.ask("Username")
         password = self._new_password_prompt()
         self.pm.set_new_user_pass(source, username, password)
-        console.print(f'New username and password set!', style="blue")
+        console.print(f'New username and password set!', style="yellow")
 
     def change_password_of_source(self):
         all_sources = self.pm.get_all_available_sources()
@@ -261,16 +271,14 @@ class ConsoleApp:
         username = Prompt.ask("New username")
         password = self._new_password_prompt()
         self.pm.update_previous_password(source, username, password)
-        console.print(f'Username and password for source {source} updated successfully!', style="blue")
+        console.print(f'Username and password for source {source} updated successfully!', style="yellow")
 
     def change_master_password(self):
         is_acceptable = False
-        user_manager = None
         old_password = None
         while not is_acceptable:
             old_password = pwinput.pwinput(prompt="Enter your current password: ")
-            user_manager = UserManager(self.user, old_password, self.db, persist=False)
-            if user_manager.check_pass():
+            if self.um.check_pass(old_password):
                 is_acceptable = True
             else:
                 console.print("Password is wrong!", style="bold red")
@@ -279,11 +287,12 @@ class ConsoleApp:
         while not is_acceptable:
             new_password = self._new_password_prompt("Enter your new Master Password: ")
             try:
-                user_manager.set_new_password(old_password, new_password)
+                self.um.set_new_password(old_password, new_password)
                 is_acceptable = True
+                self.pm.update_password_encryptions(old_password, new_password)
             except Exception as e:
                 console.print(e, style="bold red")
-        console.print(f'Master password updated successfully!', style="blue")
+        console.print(f'Master password updated successfully!', style="yellow")
 
 
 class DBManager:
