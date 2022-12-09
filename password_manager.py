@@ -8,6 +8,7 @@ from rich.prompt import Prompt
 from rich.tree import Tree
 
 from utils.aes import encrypt, decrypt
+from utils.common_checker import is_common
 from utils.hash import get_hash
 from utils.similarity_checker import is_similar
 
@@ -42,8 +43,13 @@ class UserManager:
 
         old_password_hashes = json.loads(row[1])
         all_hashes = old_password_hashes + [current_password_hash]
+
+        if is_common(new_password):
+            raise Exception("New master password is a common password!")
+
         if is_similar(new_password, all_hashes):
             raise Exception("New master password is similar to one of the old master passwords!")
+
         new_password_hash = get_hash(new_password)
         self.db_cursor.execute("UPDATE users SET password = ?, old_passwords = ? WHERE username = ?",
                                (new_password_hash, json.dumps(all_hashes), self.username), )
@@ -175,6 +181,10 @@ class ConsoleApp:
     def create_user(self):
         username = self._new_username_prompt()
         password = self._new_password_prompt()
+
+        if is_common(password):
+            raise Exception("New master password is a common password!")
+
         um = UserManager(username, password, self.db)
         self.um = um
         return username

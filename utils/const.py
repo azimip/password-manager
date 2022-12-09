@@ -1,7 +1,7 @@
 from collections import defaultdict
 
-with open("assets/common_add_ons.txt") as add_ons_file:
-    ADD_ONS = [line.rstrip() for line in add_ons_file]
+with open("assets/common_passwords.txt") as f:
+    COMMON_PASSWORDS = [line.rstrip() for line in f]
 
 LEET = defaultdict(set)
 with open("assets/leet.txt") as add_ons_file:

@@ -58,7 +58,7 @@ class AddOnVisitor(SimilarityVisitor):
     def is_similar(self) -> bool:
         password_hashes = []
 
-        for add_on in const.ADD_ONS:
+        for add_on in const.COMMON_PASSWORDS:
             password_hashes += [get_hash(x) for x in self.insert_string_to_all_positions(target_str=self.new_password, add_on=add_on)]
 
         return True if set(password_hashes).intersection(self.old_passowrd_hashes) else False
