@@ -6,6 +6,8 @@ from rich.console import Console
 from rich.prompt import Prompt
 from rich.tree import Tree
 
+from utils.hash import get_hash
+
 console = Console()
 
 
@@ -19,22 +21,25 @@ class UserManager:
             self.persist()
 
     def persist(self):
-        self.db_cursor.execute("INSERT INTO users VALUES (?, ?)", (self.username, self.password), )
+        password_hash = get_hash(self.password)
+        self.db_cursor.execute("INSERT INTO users VALUES (?, ?)", (self.username, password_hash), )
         self.db.commit()
 
     def check_pass(self):
-        real_pass = \
+        real_pass_hash = \
             self.db_cursor.execute("SELECT password FROM users WHERE username = ?", (self.username,), ).fetchall()[0][0]
-        return real_pass == self.password
+        return real_pass_hash == get_hash(self.password)
 
     def set_new_password(self, old_password, new_password):
-        current_pass = \
+        current_pass_hash = \
             self.db_cursor.execute("SELECT password FROM users WHERE username = ?", (self.username,), ).fetchall()[0][0]
-        if current_pass != old_password:
+        if current_pass_hash != get_hash(old_password):
             raise Exception("Old password is wrong")
+        new_password_hash = get_hash(new_password)
         self.db_cursor.execute("UPDATE users SET password = ? WHERE username = ?",
-                               (new_password, self.username), )
+                               (new_password_hash, self.username), )
         self.db.commit()
+        self.password = new_password
 
 
 class PasswordManager:
