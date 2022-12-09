@@ -1,3 +1,4 @@
+import json
 import sqlite3
 
 import pwinput
@@ -8,6 +9,7 @@ from rich.tree import Tree
 
 from utils.aes import encrypt, decrypt
 from utils.hash import get_hash
+from utils.similarity_checker import is_similar
 
 console = Console()
 
@@ -23,7 +25,7 @@ class UserManager:
 
     def persist(self):
         password_hash = get_hash(self.password)
-        self.db_cursor.execute("INSERT INTO users VALUES (?, ?)", (self.username, password_hash), )
+        self.db_cursor.execute("INSERT INTO users VALUES (?, ?, ?)", (self.username, password_hash, json.dumps([])), )
         self.db.commit()
 
     def check_pass(self):
@@ -31,14 +33,20 @@ class UserManager:
             self.db_cursor.execute("SELECT password FROM users WHERE username = ?", (self.username,), ).fetchall()[0][0]
         return real_pass_hash == get_hash(self.password)
 
-    def set_new_password(self, old_password, new_password):
-        current_pass_hash = \
-            self.db_cursor.execute("SELECT password FROM users WHERE username = ?", (self.username,), ).fetchall()[0][0]
-        if current_pass_hash != get_hash(old_password):
-            raise Exception("Old password is wrong")
+    def set_new_password(self, current_password, new_password):
+        row = self.db_cursor.execute("SELECT password, old_passwords FROM users WHERE username = ?",
+                                     (self.username,), ).fetchall()[0]
+        current_password_hash = row[0]
+        if current_password_hash != get_hash(current_password):
+            raise Exception("Current password is wrong")
+
+        old_password_hashes = json.loads(row[1])
+        all_hashes = old_password_hashes + [current_password_hash]
+        if is_similar(new_password, all_hashes):
+            raise Exception("New master password is similar to one of the old master passwords!")
         new_password_hash = get_hash(new_password)
-        self.db_cursor.execute("UPDATE users SET password = ? WHERE username = ?",
-                               (new_password_hash, self.username), )
+        self.db_cursor.execute("UPDATE users SET password = ?, old_passwords = ? WHERE username = ?",
+                               (new_password_hash, json.dumps(all_hashes), self.username), )
         self.db.commit()
         self.password = new_password
 
@@ -205,7 +213,7 @@ class ConsoleApp:
         password = None
         while not is_acceptable:
             password = pwinput.pwinput(prompt=prompt)
-            if len(password) < 1:
+            if len(password) > 1:
                 is_acceptable = True
             else:
                 console.print("Password is too weak!", style="bold red")
@@ -266,8 +274,15 @@ class ConsoleApp:
                 is_acceptable = True
             else:
                 console.print("Password is wrong!", style="bold red")
-        new_password = self._new_password_prompt("Enter your new Master Password: ")
-        user_manager.set_new_password(old_password, new_password)
+
+        is_acceptable = False
+        while not is_acceptable:
+            new_password = self._new_password_prompt("Enter your new Master Password: ")
+            try:
+                user_manager.set_new_password(old_password, new_password)
+                is_acceptable = True
+            except Exception as e:
+                console.print(e, style="bold red")
         console.print(f'Master password updated successfully!', style="blue")
 
 
