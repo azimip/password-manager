@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from itertools import permutations
+from itertools import permutations, product
 import re
 from typing import List
 
@@ -67,11 +67,19 @@ class AddOnVisitor(SimilarityVisitor):
     def insert_string_to_all_positions(target_str:str, add_on: str) -> List[str]:
         return [target_str[:i] + add_on + target_str[i:] for i in range(len(target_str))]
 
+
+class DifferentCaseVisitor(SimilarityVisitor):
+    def is_similar(self) -> bool:
+        password_hashes = [get_hash(x) for x in map(''.join, product(*zip(self.new_password.upper(), self.new_password.lower())))]
+
+        return True if set(password_hashes).intersection(self.old_passowrd_hashes) else False
+
 SIMIARITY_VISITORS = [
     ReversedVisitor,
     PowersetVisitor,
     PermutationVisitor,
     AddOnVisitor,
+    DifferentCaseVisitor,
 ]
 
 def is_similar(new_password: str, old_passowrd_hashes: List[str]) -> bool:
