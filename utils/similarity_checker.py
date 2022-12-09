@@ -77,7 +77,7 @@ class DifferentCaseVisitor(SimilarityVisitor):
 
 class LeetVisitor(SimilarityVisitor):
     def is_similar(self) -> bool:
-        password_hashes = [get_hash(self.new_password.replace(char, leet_char)) for char in self.new_password for leet_char in const.LEET.get(char)]
+        password_hashes = [get_hash(self.new_password.replace(char, leet_char)) for char in self.new_password for leet_char in const.LEET.get(char, set(char))]
         return True if set(password_hashes).intersection(self.old_passowrd_hashes) else False
 
 SIMIARITY_VISITORS = [
