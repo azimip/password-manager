@@ -57,7 +57,7 @@ class UserManager:
         if is_similar(new_password, all_hashes):
             raise Exception("New master password is similar to one of the old master passwords!")
 
-        if is_strong(new_password):
+        if not is_strong(new_password):
             raise Exception("New master password is not secure! The password must be at least 8 characters long"
                             " and must have at least 1 uppercase character, 1 special character and 1 number.")
 
