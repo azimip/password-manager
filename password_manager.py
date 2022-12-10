@@ -26,6 +26,12 @@ class UserManager:
             self.persist()
 
     def persist(self):
+        if is_common(self.password):
+            raise Exception("The master password is a common password!")
+
+        if not is_strong(self.password):
+            raise Exception("New master password is not secure! The password must be at least 8 characters long"
+                            " and must have at least 1 uppercase character, 1 special character and 1 number.")
         password_hash = get_hash(self.password)
         self.db_cursor.execute("INSERT INTO users VALUES (?, ?, ?)", (self.username, password_hash, json.dumps([])), )
         self.db.commit()
@@ -51,9 +57,9 @@ class UserManager:
         if is_similar(new_password, all_hashes):
             raise Exception("New master password is similar to one of the old master passwords!")
 
-        if is_strong(new_password, all_hashes):
+        if is_strong(new_password):
             raise Exception("New master password is not secure! The password must be at least 8 characters long"
-            " and must have at least 1 uppercase character, 1 special character and 1 number.")
+                            " and must have at least 1 uppercase character, 1 special character and 1 number.")
 
         new_password_hash = get_hash(new_password)
         self.db_cursor.execute("UPDATE users SET password = ?, old_passwords = ? WHERE username = ?",
@@ -185,17 +191,15 @@ class ConsoleApp:
 
     def create_user(self):
         username = self._new_username_prompt()
-        password = self._new_password_prompt()
-
-        if is_common(password):
-            raise Exception("The master password is a common password!")
-
-        if not is_strong(password):
-            raise Exception("New master password is not secure! The password must be at least 8 characters long"
-            " and must have at least 1 uppercase character, 1 special character and 1 number.")
-
-        um = UserManager(username, password, self.db)
-        self.um = um
+        is_acceptable = False
+        while not is_acceptable:
+            password = self._new_password_prompt()
+            try:
+                um = UserManager(username, password, self.db)
+                self.um = um
+                is_acceptable = True
+            except Exception as e:
+                console.print(e, style="bold red")
         return username
 
     def login(self):
