@@ -53,7 +53,7 @@ class UserManager:
 
         if is_strong(new_password, all_hashes):
             raise Exception("New master password is not secure! The password must be at least 8 characters long"
-            " and must have at least 1 special character and 1 number.")
+            " and must have at least 1 uppercase character, 1 special character and 1 number.")
 
         new_password_hash = get_hash(new_password)
         self.db_cursor.execute("UPDATE users SET password = ?, old_passwords = ? WHERE username = ?",
@@ -191,8 +191,8 @@ class ConsoleApp:
             raise Exception("The master password is a common password!")
 
         if not is_strong(password):
-            raise Exception("The master password is not secure! The password must be at least 8 characters long"
-            " and must have at least 1 special character and 1 number.")
+            raise Exception("New master password is not secure! The password must be at least 8 characters long"
+            " and must have at least 1 uppercase character, 1 special character and 1 number.")
 
         um = UserManager(username, password, self.db)
         self.um = um

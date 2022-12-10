@@ -6,5 +6,6 @@ def is_strong(new_password: str) -> bool:
     return (
         len(new_password) >= const.PASSWORD_MINIMUM_LENGTH and
         bool(re.search(r'\d', new_password)) and
-        bool(set(const.SPECIAL_CHARS).intersection(set(new_password)))
+        bool(set(const.SPECIAL_CHARS).intersection(set(new_password))) and
+        any(ch.isupper() for ch in new_password)
     )
