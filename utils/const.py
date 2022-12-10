@@ -1,5 +1,8 @@
 from collections import defaultdict
 
+PASSWORD_MINIMUM_LENGTH = 8
+SPECIAL_CHARS = ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '?', '_', '=', ',', '<', '>']
+
 with open("assets/common_passwords.txt") as f:
     COMMON_PASSWORDS = [line.rstrip() for line in f]
 

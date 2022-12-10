@@ -11,6 +11,7 @@ from utils.aes import encrypt, decrypt
 from utils.common_checker import is_common
 from utils.hash import get_hash
 from utils.similarity_checker import is_similar
+from utils.strength_checker import is_strong
 
 console = Console()
 
@@ -49,6 +50,10 @@ class UserManager:
 
         if is_similar(new_password, all_hashes):
             raise Exception("New master password is similar to one of the old master passwords!")
+
+        if is_strong(new_password, all_hashes):
+            raise Exception("New master password is not secure! The password must be at least 8 characters long"
+            " and must have at least 1 special character and 1 number.")
 
         new_password_hash = get_hash(new_password)
         self.db_cursor.execute("UPDATE users SET password = ?, old_passwords = ? WHERE username = ?",
@@ -183,7 +188,11 @@ class ConsoleApp:
         password = self._new_password_prompt()
 
         if is_common(password):
-            raise Exception("New master password is a common password!")
+            raise Exception("The master password is a common password!")
+
+        if not is_strong(password):
+            raise Exception("The master password is not secure! The password must be at least 8 characters long"
+            " and must have at least 1 special character and 1 number.")
 
         um = UserManager(username, password, self.db)
         self.um = um
