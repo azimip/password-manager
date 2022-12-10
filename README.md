@@ -16,5 +16,5 @@ https://stackoverflow.com/questions/58569361/attributeerror-module-time-has-no-a
 Link to the presentation:
 https://www.canva.com/design/DAFUH-i0GxQ/sf-8rit8oG9qVack82fy6w/view?utm_content=DAFUH-i0GxQ&utm_campaign=designshare&utm_medium=link&utm_source=publishpresent
 
-Link to video:
-
+Link to the video:
+https://www.youtube.com/watch?v=55qydyvUJAU
